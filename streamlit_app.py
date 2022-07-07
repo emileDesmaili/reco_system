@@ -57,7 +57,9 @@ if page =='Recommender':
     with st.form('Anime'):
         anime_list  = st.multiselect('Select Animes you like',animes['title'].unique())
         submitted = st.form_submit_button('Gimme recommendations 🚀')
-    if submitted:
+    if (submitted and len(anime_list ==0)):
+        st.warning('Please add at least one anime')
+    elif submitted:
         with st.spinner('✨ **よし Yosh!** ✨'):
             anime_ids = animes.loc[animes['title'].isin(anime_list), 'uid'].unique()
             df = get_recos(anime_ids,reviews)

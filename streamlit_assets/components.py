@@ -1,115 +1,83 @@
 import streamlit as st
 import pandas as pd 
-from sentence_transformers import SentenceTransformer
+import itertools
 import numpy as np
-from jmd_imagescraper.core import * # dont't worry, it's designed to work with import *
+from surprise import SVD
+from surprise.model_selection import cross_validate
+from surprise import Dataset
+from surprise import Reader
+from collections import defaultdict
 
 
-class Album:
+
+def get_recos(anime_ids, reviews):
+
+    def get_top_n(predictions, n=10):
+        """Return the top-N recommendation for each user from a set of predictions.
+        Args:
+            predictions(list of Prediction objects): The list of predictions, as
+                returned by the test method of an algorithm.
+            n(int): The number of recommendation to output for each user. Default
+                is 10.
+        Returns:
+        A dict where keys are user (raw) ids and values are lists of tuples:
+            [(raw item id, rating estimation), ...] of size n.
+        """
+
+        # First map the predictions to each user.
+        top_n = defaultdict(list)
+        for uid, iid, true_r, est, _ in predictions:
+            top_n[uid].append((iid, est))
+
+        # Then sort the predictions for each user and retrieve the k highest ones.
+        for uid, user_ratings in top_n.items():
+            user_ratings.sort(key=lambda x: x[1], reverse=True)
+            top_n[uid] = user_ratings[:n]
+
+        return top_n
+
+    #filter anime with few reviews
+    min_anime_ratings = 500
+    filter_anime = reviews['anime_uid'].value_counts() > min_anime_ratings
+    filter_anime = filter_anime[filter_anime].index.tolist()
+
+    min_user_ratings = 1
+    filter_users = reviews['uid'].value_counts() > min_user_ratings
+    filter_users = filter_users[filter_users].index.tolist()
+
+    df = reviews[(reviews['anime_uid'].isin(filter_anime)) & (reviews['uid'].isin(filter_users))]
+    # add anime list to dataframe 
+    new_uid = max(df['uid'])+1
+    new_list = list(zip([new_uid]*3,list(anime_ids),list(10*np.ones(len(anime_ids)))))
+    new_df = pd.DataFrame(new_list, columns=['uid','anime_uid','score'])
+    df_reviews = df.append(new_df).reset_index(drop=True)
+    df_reviews['score'] = df_reviews['score'].apply(int)
+    # preprocess
+    reader = Reader(rating_scale=(0, 10))
+    data = Dataset.load_from_df(df_reviews[['uid', 'anime_uid', 'score']], reader)
+    # Retrieve the trainset.
+    trainset = data.build_full_trainset()
+    # Build an algorithm, and train it.
+    algo = SVD()
+    algo.fit(trainset)
+
+    # Then predict ratings for all pairs (u, i) that are NOT in the training set.
+    testset = trainset.build_anti_testset()
+    predictions = algo.test(testset)
+
+    top_n = get_top_n(predictions, n=10)
+
+    ids = []
+    scores = []
+    for item in top_n[325671]:
+        ids.append(item[0])
+        scores.append(item[1])
+        df = pd.DataFrame(list(zip(list(ids),scores)),columns=['anime_id','score'])
     
-    def __init__(self, name, df):
-        self.df = df
-        self.name = name
-        self.artist = self.df[self.df['album']==self.name]['artist'].iloc[0]
-        self.text = self.df[self.df['album']==self.name]['review'].iloc[0]
-        self.score = self.df[self.df['album']==self.name]['score'].iloc[0]
-        self.bnm = self.df[self.df['album']==self.name]['bnm'].iloc[0]
-        self.year = self.df[self.df['album']==self.name]['release_year'].iloc[0]
-        self.url_link = self.df[self.df['album']==self.name]['link'].iloc[0]
-
-    
-    def load_ner_matrix(self):
-        self.matrix = pd.read_csv('data/raw/ner_matrix.zip',usecols=['album',self.name])
-
-    def scrape_cover(self):
-        search_string = str(self.artist) + ' ' + str(self.name) + ' cover'
-        search_url = duckduckgo_scrape_urls(search_string, max_results=1)
-        self.cover = search_url[0]
-    
-    def get_matches(self, n=5):
-        self.load_ner_matrix()
-        self.matches = self.matrix.sort_values(by = self.name, ascending=False)['album'].to_list()[:n]
-    
-    def display_matches(self, n=5):
-        self.get_matches(n=n)
-        cols = st.columns(n)
-        i=0
-        for a, x in enumerate(cols):
-            with x:
-                match = Album(self.matches[i], self.df)
-                match.scrape_cover()
-                st.write(f'**{match.artist}**')
-                st.write(f'[{match.name}]({match.url_link})')
-                st.image(match.cover, width=150)
-                i+=1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### NOT USED ########
-
-def n_intersections(a,b):
-    return len(list(set(a) & set(b)))
-
-@st.cache()
-def ner_matrix():
-    #cleaning & formatting NER results
-    df = pd.read_csv('data/raw/pitchfork_large.csv').dropna(subset=['review'])
-    df['persons'] = df['persons'].str.strip('[]').str.replace("'", '').str.split(',')  
-    df['orgs'] = df['orgs'].str.strip('[]').str.replace("'", '').str.split(',')  
-    df['entities'] = df['persons'] + df['orgs']
-    
-    for i in range(len(df)):
-        entities = df['entities'].iloc[i]
-        clean_entities = []
-        for entity in entities:
-            clean_entities.append(entity.strip().replace("’s", ""))
-        df['entities'].iloc[i] = clean_entities
-    #score matrix to measure reviews with similar entities mentioned in them
-    score_matrix = np.ones((len(df), len(df)))
-
-    for i in range(len(df)):
-        for j in range(i):
-            entities_1 = df['entities'].iloc[i]
-            entities_2 = df['entities'].iloc[j]
-            score = n_intersections(entities_1, entities_2)
-            score_matrix[i,j] = score
-            score_matrix[j,i] = score
-    df = pd.DataFrame(score_matrix, columns=df['album'], index = df['album'])
-    df.to_csv('C:/git/mypitchfork/data/raw/ner_matrix.csv')
     return df
 
-@st.cache
-def corr_matrix():
-    # correlation matrix for embeddings
-    df = pd.read_csv('data/raw/pitchfork_large.csv').dropna(subset=['review'])
-    embedding_matrix = np.ones((384, len(df)))
-    #dumb formatting
-    df['vec'] = df['vec'].apply(lambda x: 
-                           np.fromstring(
-                               x.replace('\n','')
-                                .replace('[','')
-                                .replace(']','')
-                                .replace('  ',' '), sep=' '))
-    st.write('done')
-  
-    embedding_matrix = np.array(df['vec'])
-    corr = pd.DataFrame(embedding_matrix,columns=df['album']).corr()
-    corr.to_csv('C:/git/mypitchfork/data/raw/corr_matrix.csv')
-    return corr
 
 
-    
 
 
 

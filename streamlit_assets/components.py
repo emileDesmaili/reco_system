@@ -7,12 +7,16 @@ from surprise.model_selection import cross_validate
 from surprise import Dataset
 from surprise import Reader
 from collections import defaultdict
+import ast
+from streamlit_tags import st_tags
+
+
 
 
 
 def get_recos(anime_ids, reviews):
 
-    def get_top_n(predictions, n=10):
+    def get_top_n(predictions, n=12):
         """Return the top-N recommendation for each user from a set of predictions.
         Args:
             predictions(list of Prediction objects): The list of predictions, as
@@ -65,16 +69,41 @@ def get_recos(anime_ids, reviews):
     testset = trainset.build_anti_testset()
     predictions = algo.test(testset)
 
-    top_n = get_top_n(predictions, n=10)
+    top_n = get_top_n(predictions, n=12)
 
     ids = []
     scores = []
-    for item in top_n[325671]:
+    for item in top_n[new_uid]:
         ids.append(item[0])
         scores.append(item[1])
-        df = pd.DataFrame(list(zip(list(ids),scores)),columns=['anime_id','score'])
+        df = pd.DataFrame(list(zip(list(ids),scores)),columns=['uid','match'])
+        
     
     return df
+
+def display_anime(df):
+    title = df['title']
+    match = int(10*df['match'])
+    score = df['score']
+    link = df['link']
+    img = df['img_url']
+    synopsis = df['synopsis']
+    dates = df['aired']
+    genres = ast.literal_eval(df['genre'])
+
+    st.markdown(f'#### [{title}]({link})')
+    st.write(f"Match: **{match}%**")
+    st.image(img)
+    
+    st.write(f"User Rating: **{score}**")
+    
+    st.multiselect('Tags',options=genres,default=genres)
+
+    with st.expander('Details'):
+        st.write(f"Aired: {dates}")
+        st.write(synopsis)
+        
+
 
 
 

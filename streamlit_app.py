@@ -57,7 +57,7 @@ if page =='Recommender':
     with st.form('Anime'):
         anime_list  = st.multiselect('Select Animes you like',animes['title'].unique())
         submitted = st.form_submit_button('Gimme recommendations 🚀')
-    if (submitted and len(anime_list ==0)):
+    if (submitted and len(anime_list) == 0):
         st.warning('Please add at least one anime')
     elif submitted:
         with st.spinner('✨ **よし Yosh!** ✨'):

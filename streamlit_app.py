@@ -56,9 +56,9 @@ if page =='Recommender':
         st.session_state['df'] = None
     with st.form('Anime'):
         anime_list  = st.multiselect('Select Animes you like',animes['title'].unique())
-        submitted = st.form_submit_button('Gimme recommendations')
+        submitted = st.form_submit_button('Gimme recommendations 🚀')
     if submitted:
-        with st.spinner('**よし Yosh!**'):
+        with st.spinner('**✨ よし Yosh! ✨ **'):
             anime_ids = animes.loc[animes['title'].isin(anime_list), 'uid'].unique()
             df = get_recos(anime_ids,reviews)
             df_merged = animes.merge(df, on='uid').drop_duplicates(subset='uid').sort_values(by='match', ascending=False).reset_index(drop=True)

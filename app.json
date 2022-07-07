@@ -1,0 +1,9 @@
+{
+    "name": "reco_system",
+    "description": "Recommender Systems for animes",
+    "repository": "https://github.com/emileDesmaili/reco_system",
+    "keywords": [
+        "streamlit",
+        "python"
+    ]
+}

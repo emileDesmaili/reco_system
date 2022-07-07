@@ -1,6 +1,7 @@
-# reco_system
-
-Recommender Systems for animes
+![alt text](streamlit_assets/assets/app_logo.PNG)
+# Introducing... AReS (Anime Recommender System)
+- Using MyAnimeList dataset from Kaggle, I built a recommender system for anime using SVD embeddings. 
+- TODO: update with 2022 data (the dataset is from 2020...)
 
 Built with ❤️ by [emileDesmaili](https://github.com/emileDesmaili)
 

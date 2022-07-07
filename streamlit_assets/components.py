@@ -8,7 +8,7 @@ from surprise import Dataset
 from surprise import Reader
 from collections import defaultdict
 import ast
-from streamlit_tags import st_tags
+
 
 
 

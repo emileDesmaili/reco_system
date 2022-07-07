@@ -1,5 +1,6 @@
 ![alt text](streamlit_assets/assets/app_logo.PNG)
 # Introducing... AReS (Anime Recommender System)
+- webapp is [here](https://emiledesmaili-reco-system-streamlit-app-dznlyc.streamlitapp.com/)
 - Using MyAnimeList dataset from Kaggle, I built a recommender system for anime using SVD embeddings. 
 - TODO: update with 2022 data (the dataset is from 2020...)
 

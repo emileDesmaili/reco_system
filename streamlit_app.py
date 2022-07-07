@@ -33,7 +33,7 @@ def load_animes():
     return pd.read_csv('data/animes.csv')
 @st.cache()    
 def load_reviews():
-    return pd.read_csv('data/reviews.csv', usecols=['uid','anime_uid','score'])
+    return pd.read_csv('data/reviews_light.csv', usecols=['uid','anime_uid','score'])
 
 animes = load_animes()
 reviews = load_reviews()

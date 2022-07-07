@@ -48,7 +48,7 @@ def get_recos(anime_ids, reviews):
     df = reviews[(reviews['anime_uid'].isin(filter_anime)) & (reviews['uid'].isin(filter_users))]
     # add anime list to dataframe 
     new_uid = max(df['uid'])+1
-    new_list = list(zip([new_uid]*3,list(anime_ids),list(10*np.ones(len(anime_ids)))))
+    new_list = list(zip([new_uid]*3,list(anime_ids),list(9*np.ones(len(anime_ids)))))
     new_df = pd.DataFrame(new_list, columns=['uid','anime_uid','score'])
     df_reviews = df.append(new_df).reset_index(drop=True)
     df_reviews['score'] = df_reviews['score'].apply(int)

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd 
 import itertools
 import numpy as np
-from surprise import SVD
+from surprise import SVD, NMF, KNNBasic, SVDpp
 from surprise.model_selection import cross_validate
 from surprise import Dataset
 from surprise import Reader
@@ -52,7 +52,7 @@ def get_recos(anime_ids, reviews):
     df = reviews[(reviews['anime_uid'].isin(filter_anime)) & (reviews['uid'].isin(filter_users))]
     # add anime list to dataframe 
     new_uid = max(df['uid'])+1
-    new_list = list(zip([new_uid]*3,list(anime_ids),list(9*np.ones(len(anime_ids)))))
+    new_list = list(zip([new_uid]*len(anime_ids),list(anime_ids),list(8*np.ones(len(anime_ids)))))
     new_df = pd.DataFrame(new_list, columns=['uid','anime_uid','score'])
     df_reviews = df.append(new_df).reset_index(drop=True)
     df_reviews['score'] = df_reviews['score'].apply(int)
@@ -103,6 +103,24 @@ def display_anime(df):
         st.write(f"Aired: {dates}")
         st.write(synopsis)
         
+
+def test_algo(reviews, algo, k, measures):
+    min_anime_ratings = 500
+    filter_anime = reviews['anime_uid'].value_counts() > min_anime_ratings
+    filter_anime = filter_anime[filter_anime].index.tolist()
+
+    min_user_ratings = 1
+    filter_users = reviews['uid'].value_counts() > min_user_ratings
+    filter_users = filter_users[filter_users].index.tolist()
+    df = reviews[(reviews['anime_uid'].isin(filter_anime)) & (reviews['uid'].isin(filter_users))]
+
+    reader = Reader(rating_scale=(0, 10))
+    data = Dataset.load_from_df(df[['uid', 'anime_uid', 'score']], reader)
+    
+    # Run k-fold cross-validation and print results.
+    return pd.DataFrame(cross_validate(algo, data, measures=measures, cv=k, verbose=True))
+
+
 
 
 

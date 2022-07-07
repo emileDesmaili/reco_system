@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 from streamlit_option_menu import option_menu
-from streamlit_assets.components import get_recos, display_anime
+from streamlit_assets.components import get_recos, display_anime, test_algo
+from surprise import SVD, NMF, KNNBasic, SVDpp
+import plotly.express as px
 
 
 # PAGE SETUP
@@ -94,6 +96,48 @@ if page =='Recommender':
             display_anime(st.session_state['df'].iloc[10])
         with col12:
             display_anime(st.session_state['df'].iloc[11])
+
+if page == 'About':
+    st.subheader('Data & Assumptions')
+    st.markdown(f'- Recommender Systems build using **[Surprise](https://surprise.readthedocs.io/en/stable/index.html#)**', unsafe_allow_html=True)
+    st.markdown(f'- I used this **[dataset](https://www.kaggle.com/datasets/marlesson/myanimelist-dataset-animes-profiles-reviews) from Kaggle** which I would like to update ', unsafe_allow_html=True)
+    st.write('- When the user adds animes, instead of asking them to score each one, **I assign all of them with a rating of 8.0/10**. This is a big assumption and stands to be improved')
+    
+    st.subheader('Algorithms')
+    st.write('I used SVD as a baseline, it performed better than NMF and on par with KNN which is slower')
+    model_names = ['SVD','NMF','SVD++','K-NN']
+    models = [SVD(),NMF(), SVDpp(),KNNBasic()]
+    model_dict = dict(zip(model_names,models))
+    if 'table' not in st.session_state:
+        st.session_state['table'] = None
+
+    with st.form('Training Parameters'):
+        col1, col2 = st.columns(2)
+        with col1:
+            algo = st.selectbox('Select Algorithm',model_names)
+            algo_selection = model_dict[algo]
+        with col2:
+            k = st.slider('K-fold Cross-validation',2,10,step=1)
+            measures = st.multiselect('Evaluation Metrics',['RMSE', 'MAE','MSE'],['RMSE', 'MAE'])
+        submitted = st.form_submit_button('Train Algorithm')
+    if submitted:
+        with st.spinner('Training Algorithm...'):
+            table = test_algo(reviews, algo_selection, k, measures)
+            st.session_state['table'] = table
+    
+    if st.session_state['table'] is not None:
+        col1, col2 = st.columns(2)
+        with col1:
+            df = st.session_state['table']
+            droplist = ['fit_time','test_time']
+            fig = px.bar(df, x= df.index, y = df.drop(droplist,axis=1).columns, barmode='group')
+            st.plotly_chart(fig)
+        with col2:
+            st.write(st.session_state['table'])
+    
+
+
+
 
 
 

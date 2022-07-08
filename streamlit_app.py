@@ -32,10 +32,14 @@ with center_column:
 # data import
 @st.cache()
 def load_animes():
-    return pd.read_csv('data/animes.csv').drop_duplicates(subset=['uid','title'])
+    df = pd.read_csv('data/animes.csv', ).drop_duplicates(subset=['uid','title']).reset_index()
+    df = df.rename(columns={"uid": "item_id"})
+    return df
 @st.cache()    
 def load_reviews():
-    return pd.read_csv('data/reviews_light.csv', usecols=['uid','anime_uid','score'])
+    df = pd.read_csv('data/reviews_light.csv', usecols=['uid','anime_uid','score'])
+    df.columns=['user_id','item_id','rating']
+    return df
 
 animes = load_animes()
 reviews = load_reviews()
@@ -54,20 +58,24 @@ with page_container:
 if page =='Recommender':
     if 'df' not in st.session_state:
         st.session_state['df'] = None
+    # FORM
     with st.form('Anime'):
         anime_list  = st.multiselect('Select Animes you like',animes['title'].unique())
+        slider = st.slider('How much of the recommendation is driven by similar user preferences vs genres',0.,1.,step=0.05, value=0.8)
         submitted = st.form_submit_button('Gimme recommendations 🚀')
     if (submitted and len(anime_list) == 0):
         st.warning('Please add at least one anime')
+
+    # COMPUTATION
     elif submitted:
         with st.spinner('✨ **よし Yosh!** ✨'):
-            anime_ids = animes.loc[animes['title'].isin(anime_list), 'uid'].unique()
-            df = get_recos(anime_ids,reviews)
-            df_merged = animes.merge(df, on='uid').drop_duplicates(subset='uid').sort_values(by='match', ascending=False).reset_index(drop=True)
-            st.session_state['df'] = df_merged
-    
+            anime_ids = animes.loc[animes['title'].isin(anime_list), 'item_id'].unique()
+            df = get_recos(anime_ids,animes, reviews, slider)
+            st.session_state['df'] = df
+            
+    # DISPLAY
     if st.session_state['df'] is not None:
-        sort_key = st.selectbox('Sort results by:',['match','score','popularity'])
+        sort_key = st.selectbox('Sort results by:',['YourMatch','score','popularity'])
         st.session_state['df'] = st.session_state['df'].sort_values(by=sort_key, ascending=False).reset_index(drop=True)
         #st.write(st.session_state['df'])
 

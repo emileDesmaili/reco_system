@@ -4,3 +4,4 @@ pandas
 numpy
 surprise
 plotly
+sklearn

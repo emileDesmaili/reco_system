@@ -8,59 +8,80 @@ from surprise import Dataset
 from surprise import Reader
 from collections import defaultdict
 import ast
+from sklearn.feature_extraction.text import CountVectorizer
+import scipy.sparse as sp
 
 
 
+def filter_reviews(reviews, min_item_ratings=500, min_user_ratings= 1):
+    """function to filter out items with few reviews
 
+    Args:
+        reviews (_type_): dataframe of reviews with columns ['user_id','item_id','rating']
+        min_item_ratings (int, optional): minimum ratings filter. Defaults to 500.
+        min_user_ratings (int, optional): minimum reviews per user filter. Defaults to 1.
 
+    Returns:
+        dataframe: filtered dataframe
+    """
+    filter_items = reviews['item_id'].value_counts() > min_item_ratings
+    filter_items = filter_items[filter_items].index.tolist()
 
-def get_recos(anime_ids, reviews):
+    filter_users = reviews['user_id'].value_counts() > min_user_ratings
+    filter_users = filter_users[filter_users].index.tolist()
+    df = reviews[(reviews['item_id'].isin(filter_items)) & (reviews['user_id'].isin(filter_users))]
+    return df
 
-    def get_top_n(predictions, n=12):
-        """Return the top-N recommendation for each user from a set of predictions.
-        Args:
-            predictions(list of Prediction objects): The list of predictions, as
-                returned by the test method of an algorithm.
-            n(int): The number of recommendation to output for each user. Default
-                is 10.
-        Returns:
-        A dict where keys are user (raw) ids and values are lists of tuples:
-            [(raw item id, rating estimation), ...] of size n.
-        """
+def get_top_n(predictions, uid, n=12):
+    """Return the top-N recommendation for each user from a set of predictions.
+    Args:
+        predictions(list of Prediction objects): The list of predictions, as
+            returned by the test method of an algorithm.
+        n(int): The number of recommendation to output for each user. Default
+            is 10.
+    Returns:
+    A dict where keys are user (raw) ids and values are lists of tuples:
+        [(raw item id, rating estimation), ...] of size n.
+    """
+    # First map the predictions to each user.
+    top_n = defaultdict(list)
+    for uid, iid, true_r, est, _ in predictions:
+        top_n[uid].append((iid, est))
 
-        # First map the predictions to each user.
-        top_n = defaultdict(list)
-        for uid, iid, true_r, est, _ in predictions:
-            top_n[uid].append((iid, est))
-
-        # Then sort the predictions for each user and retrieve the k highest ones.
-        for uid, user_ratings in top_n.items():
-            user_ratings.sort(key=lambda x: x[1], reverse=True)
-            top_n[uid] = user_ratings[:n]
+    # Then sort the predictions for each user and retrieve the n highest ones.
+    for uid, user_ratings in top_n.items():
+        user_ratings.sort(key=lambda x: x[1], reverse=True)
+        top_n[uid] = user_ratings[:n]
 
         return top_n
 
-    #filter anime with few reviews
-    min_anime_ratings = 500
-    filter_anime = reviews['anime_uid'].value_counts() > min_anime_ratings
-    filter_anime = filter_anime[filter_anime].index.tolist()
+def get_recos_users(new_ids, reviews, default_rating=8):
+    """generate recommendations from a list of items with matrix factorization
 
-    min_user_ratings = 1
-    filter_users = reviews['uid'].value_counts() > min_user_ratings
-    filter_users = filter_users[filter_users].index.tolist()
+    Args:
+        anime_ids (list): list of item ids
+        reviews (dataframe): dataframe of reviews with columns ['user_id','item_id','rating']
+        default_rating (integer or float): default rating assigned to all new items
 
-    df = reviews[(reviews['anime_uid'].isin(filter_anime)) & (reviews['uid'].isin(filter_users))]
+    Returns:
+        dataframe: dataframe of recommendations for a user with item_id and score
+    """
+    # renaming columns just in case
+    reviews.columns = ['user_id','item_id','rating']
+
+    df = filter_reviews(reviews)
     # add anime list to dataframe 
-    new_uid = max(df['uid'])+1
-    # important assumption
-    default_rating = 8
-    new_list = list(zip([new_uid]*len(anime_ids),list(anime_ids),list(default_rating*np.ones(len(anime_ids)))))
-    new_df = pd.DataFrame(new_list, columns=['uid','anime_uid','score'])
+    new_uid = max(df['user_id'])+1
+    
+
+    #adding user reviews to dataset
+    new_list = list(zip([new_uid]*len(new_ids),list(new_ids),list(default_rating*np.ones(len(new_ids)))))
+    new_df = pd.DataFrame(new_list, columns=['user_id','item_id','rating'])
     df_reviews = df.append(new_df).reset_index(drop=True)
-    df_reviews['score'] = df_reviews['score'].apply(int)
+    df_reviews['rating'] = df_reviews['rating'].apply(int)
     # preprocess
-    reader = Reader(rating_scale=(0, 10))
-    data = Dataset.load_from_df(df_reviews[['uid', 'anime_uid', 'score']], reader)
+    reader = Reader(rating_scale=(min(df_reviews['rating']), max(df_reviews['rating'])))
+    data = Dataset.load_from_df(df_reviews[['user_id', 'item_id', 'rating']], reader)
     # Retrieve the trainset.
     trainset = data.build_full_trainset()
     # Build an algorithm, and train it.
@@ -70,31 +91,61 @@ def get_recos(anime_ids, reviews):
     # Then predict ratings for all pairs (u, i) that are NOT in the training set.
     testset = trainset.build_anti_testset()
     predictions = algo.test(testset)
+    top_n = get_top_n(predictions,new_uid, n=12)
 
-    top_n = get_top_n(predictions, n=12)
-
+    # create clean dataframe with item_ids and scores
     ids = []
     scores = []
     for item in top_n[new_uid]:
         ids.append(item[0])
         scores.append(item[1])
-        df = pd.DataFrame(list(zip(list(ids),scores)),columns=['uid','match'])
-        
-    
+        df = pd.DataFrame(list(zip(list(ids),scores)),columns=['item_id','match']) 
     return df
+
+def get_recos_genre(new_ids, animes):
+    
+    #preprocessing
+    genres = animes["genre"].apply(ast.literal_eval).apply(lambda x: ', '.join(x))
+    idx = animes[animes['item_id'].isin(new_ids)].index
+    anime_ids = list(animes.iloc[idx]['item_id'].values)
+    
+    # count vectorizer and occurence matrix
+    vectorizer = CountVectorizer()
+    X = vectorizer.fit_transform(genres)
+    Xc = (X[idx,:]* X.T).toarray()
+    df = pd.DataFrame(Xc.T, index=animes['item_id'],columns=anime_ids)
+
+    #removing users input & normalizing
+    mask = df.index.isin(anime_ids)
+    df_masked = df[~mask]
+    df_norm = df_masked / df_masked.max()
+    #averaging all scores (not great but can't think of better yet)
+    df_norm['average'] = df_norm.mean(axis=1)
+    reco_genre = df_norm.sort_values(by='average',ascending=False)
+    return reco_genre
+
+def get_recos(new_ids, animes, reviews, slider):
+
+    df = get_recos_users(new_ids,reviews)
+    df2 = get_recos_genre(new_ids,animes)
+    df_reco = df.merge(df2,on='item_id')
+    df_reco['YourMatch'] = df_reco['match']*slider + (1-slider)*df_reco['average']
+    df_merged = animes.merge(df_reco, on='item_id').drop_duplicates(subset='item_id').sort_values(by='YourMatch', ascending=False).reset_index(drop=True)
+    return df_merged
 
 def display_anime(df):
     title = df['title']
-    match = int(10*df['match'])
     score = df['score']
+    reco_score = int(10*df['YourMatch'])
     link = df['link']
     img = df['img_url']
     synopsis = df['synopsis']
     dates = df['aired']
     genres = ast.literal_eval(df['genre'])
 
+
     st.markdown(f'#### [{title}]({link})')
-    st.write(f"Match: **{match}%**")
+    st.write(f"Match: **{reco_score}%**")
     st.image(img)
     
     st.write(f"User Rating: **{score}**")
@@ -107,20 +158,12 @@ def display_anime(df):
         
 
 def test_algo(reviews, algo, k, measures):
-    min_anime_ratings = 500
-    filter_anime = reviews['anime_uid'].value_counts() > min_anime_ratings
-    filter_anime = filter_anime[filter_anime].index.tolist()
-
-    min_user_ratings = 1
-    filter_users = reviews['uid'].value_counts() > min_user_ratings
-    filter_users = filter_users[filter_users].index.tolist()
-    df = reviews[(reviews['anime_uid'].isin(filter_anime)) & (reviews['uid'].isin(filter_users))]
-
+    df = filter_reviews(reviews)
     reader = Reader(rating_scale=(0, 10))
-    data = Dataset.load_from_df(df[['uid', 'anime_uid', 'score']], reader)
-    
+    data = Dataset.load_from_df(df[['user_id', 'item_id', 'rating']], reader)
     # Run k-fold cross-validation and print results.
     return pd.DataFrame(cross_validate(algo, data, measures=measures, cv=k, verbose=True))
+
 
 
 

@@ -109,7 +109,8 @@ if page =='Recommender':
 
 if page == 'About':
     st.subheader('Data & Assumptions')
-    st.markdown(f'- Recommender Systems build using **[Surprise](https://surprise.readthedocs.io/en/stable/index.html#)**', unsafe_allow_html=True)
+    st.markdown(f'- User-based Recommender Systems build using **[Surprise](https://surprise.readthedocs.io/en/stable/index.html#)**', unsafe_allow_html=True)
+    st.markdown(f'- Genre-based Recommender Systems built using a co-occurence matrix of genres & averaged on all items', unsafe_allow_html=True)
     st.markdown(f'- I used this **[dataset](https://www.kaggle.com/datasets/marlesson/myanimelist-dataset-animes-profiles-reviews) from Kaggle** which I would like to update ', unsafe_allow_html=True)
     st.write('- When the user adds animes, instead of asking them to score each one, **I assign all of them with a rating of 8.0/10**. This is a big assumption and stands to be improved')
     

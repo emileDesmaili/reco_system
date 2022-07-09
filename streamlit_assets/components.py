@@ -55,7 +55,7 @@ def get_top_n(predictions, uid, n=12):
 
         return top_n
 
-def get_recos_users(new_ids, reviews, default_rating=8, filter_reviews=True):
+def get_recos_users(new_ids, reviews, filter_items=True, default_rating=8):
     """generate recommendations from a list of items with matrix factorization
 
     Args:
@@ -68,7 +68,7 @@ def get_recos_users(new_ids, reviews, default_rating=8, filter_reviews=True):
     """
     # renaming columns just in case
     reviews.columns = ['user_id','item_id','rating']
-    if filter_reviews:
+    if filter_items == True:
         df = filter_reviews(reviews)
     else:
         df = reviews

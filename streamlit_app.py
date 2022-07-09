@@ -44,6 +44,7 @@ def load_reviews():
     return df
 
 animes = load_animes()
+st.write(animes)
 reviews = load_reviews()
 
 # Menu 

@@ -102,7 +102,7 @@ def get_recos_users(new_ids, reviews, filter_items=True, filter_n=500, default_r
     for item in top_n[new_uid]:
         ids.append(item[0])
         scores.append(item[1])
-        df = pd.DataFrame(list(zip(list(ids),scores)),columns=['item_id','match']) 
+        df = pd.DataFrame(list(zip(list(ids),scores)),columns=['item_id','user match']) 
     return df
 
 def get_recos_genre(new_ids, animes):
@@ -123,8 +123,8 @@ def get_recos_genre(new_ids, animes):
     df_masked = df[~mask]
     df_norm = df_masked / df_masked.max()
     #averaging all scores (not great but can't think of better yet)
-    df_norm['average'] = df_norm.mean(axis=1)
-    reco_genre = df_norm.sort_values(by='average',ascending=False)
+    df_norm['genre match'] = df_norm.mean(axis=1)
+    reco_genre = df_norm
     return reco_genre
 
 def get_recos(new_ids, animes, reviews, slider):
@@ -132,7 +132,7 @@ def get_recos(new_ids, animes, reviews, slider):
     df = get_recos_users(new_ids,reviews)
     df2 = get_recos_genre(new_ids,animes)
     df_reco = df.merge(df2,on='item_id')
-    df_reco['YourMatch'] = df_reco['match']*slider + (1-slider)*df_reco['average']
+    df_reco['YourMatch'] = df_reco['user match']*slider + (1-slider)*df_reco['genre match']
     df_merged = animes.merge(df_reco, on='item_id').drop_duplicates(subset='item_id').sort_values(by='YourMatch', ascending=False).reset_index(drop=True)
     return df_merged
 
@@ -140,6 +140,8 @@ def display_anime(df):
     title = df['title']
     score = df['score']
     reco_score = int(10*df['YourMatch'])
+    user_score = int(10*df['user match'])
+    genre_score = int(10*df['genre match'])
     link = df['link']
     img = df['img_url']
     synopsis = df['synopsis']
@@ -148,12 +150,12 @@ def display_anime(df):
 
 
     st.markdown(f'#### [{title}]({link})')
-    st.write(f"Match: **{reco_score}%**")
+    st.write(f"Match: **{reco_score}%  - user: {user_score}% - genre: {genre_score}%**")
     st.image(img)
     
     st.write(f"User Rating: **{score}**")
     
-    st.multiselect('Tags',options=genres,default=genres)
+    st.multiselect('Tags',options=genres,default=genres, key=title)
 
     with st.expander('Details'):
         st.write(f"Aired: {dates}")

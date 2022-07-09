@@ -75,7 +75,7 @@ if page =='Recommender':
             
     # DISPLAY
     if st.session_state['df'] is not None:
-        sort_key = st.selectbox('Sort results by:',['YourMatch','score','popularity'])
+        sort_key = st.selectbox('Sort results by:',['YourMatch','user match','genre match','score','popularity'])
         st.session_state['df'] = st.session_state['df'].sort_values(by=sort_key, ascending=False).reset_index(drop=True)
         #st.write(st.session_state['df'])
 

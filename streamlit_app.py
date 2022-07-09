@@ -32,12 +32,12 @@ with center_column:
 # data import
 @st.cache()
 def load_animes():
-    df = pd.read_csv('data/animes.csv', ).drop_duplicates(subset=['uid','title']).reset_index()
+    df = pd.read_csv('data_local/animes.csv', ).drop_duplicates(subset=['uid','title']).reset_index()
     df = df.rename(columns={"uid": "item_id"})
     return df
 @st.cache()    
 def load_reviews():
-    df = pd.read_csv('data/reviews_light.csv', usecols=['uid','anime_uid','score'])
+    df = pd.read_csv('data_local/reviews_light.csv', usecols=['uid','anime_uid','score'])
     df.columns=['user_id','item_id','rating']
     return df
 

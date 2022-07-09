@@ -61,7 +61,7 @@ if page =='Recommender':
     # FORM
     with st.form('Anime'):
         anime_list  = st.multiselect('Select Animes you like',animes['title'].unique())
-        slider = st.slider('How much of the recommendation is driven by similar user preferences vs genres',0.,1.,step=0.05, value=0.8)
+        slider = st.slider('How much of the recommendation is driven by similar user preferences vs genres (0 is only genre, 1 is only users)',0.,1.,step=0.05, value=0.5)
         submitted = st.form_submit_button('Gimme recommendations 🚀')
     if (submitted and len(anime_list) == 0):
         st.warning('Please add at least one anime')

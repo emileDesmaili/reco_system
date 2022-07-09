@@ -51,11 +51,11 @@ def get_top_n(predictions, uid, n=12):
     # Then sort the predictions for each user and retrieve the n highest ones.
     for uid, user_ratings in top_n.items():
         user_ratings.sort(key=lambda x: x[1], reverse=True)
-        top_n[uid] = user_ratings[:n]
+        top_n[uid] = user_ratings[:]
 
         return top_n
 
-def get_recos_users(new_ids, reviews, default_rating=8):
+def get_recos_users(new_ids, reviews, default_rating=8, filter_reviews=True):
     """generate recommendations from a list of items with matrix factorization
 
     Args:
@@ -68,8 +68,10 @@ def get_recos_users(new_ids, reviews, default_rating=8):
     """
     # renaming columns just in case
     reviews.columns = ['user_id','item_id','rating']
-
-    df = filter_reviews(reviews)
+    if filter_reviews:
+        df = filter_reviews(reviews)
+    else:
+        df = reviews
     # add anime list to dataframe 
     new_uid = max(df['user_id'])+1
     

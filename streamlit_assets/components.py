@@ -55,7 +55,7 @@ def get_top_n(predictions, uid, n=12):
 
         return top_n
 
-def get_recos_users(new_ids, reviews, filter_items=True, default_rating=8):
+def get_recos_users(new_ids, reviews, filter_items=True, filter_n=500, default_rating=8):
     """generate recommendations from a list of items with matrix factorization
 
     Args:
@@ -69,7 +69,7 @@ def get_recos_users(new_ids, reviews, filter_items=True, default_rating=8):
     # renaming columns just in case
     reviews.columns = ['user_id','item_id','rating']
     if filter_items == True:
-        df = filter_reviews(reviews)
+        df = filter_reviews(reviews,min_item_ratings=filter_n)
     else:
         df = reviews
     # add anime list to dataframe 
@@ -80,9 +80,10 @@ def get_recos_users(new_ids, reviews, filter_items=True, default_rating=8):
     new_list = list(zip([new_uid]*len(new_ids),list(new_ids),list(default_rating*np.ones(len(new_ids)))))
     new_df = pd.DataFrame(new_list, columns=['user_id','item_id','rating'])
     df_reviews = df.append(new_df).reset_index(drop=True)
-    df_reviews['rating'] = df_reviews['rating'].apply(int)
+    df_reviews['rating'] = df_reviews['rating'].apply(float)
+    df_reviews = df_reviews.dropna()
     # preprocess
-    reader = Reader(rating_scale=(min(df_reviews['rating']), max(df_reviews['rating'])))
+    reader = Reader(rating_scale=(0, max(df_reviews['rating'])))
     data = Dataset.load_from_df(df_reviews[['user_id', 'item_id', 'rating']], reader)
     # Retrieve the trainset.
     trainset = data.build_full_trainset()

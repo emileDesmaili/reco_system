@@ -150,7 +150,7 @@ def display_anime(df):
 
 
     st.markdown(f'#### [{title}]({link})')
-    st.write(f"Match: **{reco_score}%  - user: {user_score}% - genre: {genre_score}%**")
+    st.write(f"Match: **{reco_score}%**  - (user: {user_score}% - genre: {genre_score}%)")
     st.image(img)
     
     st.write(f"User Rating: **{score}**")

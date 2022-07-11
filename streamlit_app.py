@@ -70,7 +70,7 @@ if page =='Recommender':
     elif submitted:
         with st.spinner('✨ **よし Yosh!** ✨'):
             anime_ids = animes.loc[animes['title'].isin(anime_list), 'item_id'].unique()
-            df = get_recos(anime_ids,animes, reviews, slider)
+            df = get_recos(anime_ids,animes, reviews, slider).head(12)
             st.session_state['df'] = df
             
     # DISPLAY

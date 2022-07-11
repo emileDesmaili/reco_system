@@ -131,12 +131,10 @@ def get_recos(new_ids, animes, reviews, slider):
 
     df = get_recos_users(new_ids,reviews)
     df2 = get_recos_genre(new_ids,animes)
-    st.write(df)
-    st.write(df2)
     df_reco = df.merge(df2,on='item_id')
     df_reco['YourMatch'] = df_reco['user match']*slider + (1-slider)*10*df_reco['genre match']
     df_merged = animes.merge(df_reco, on='item_id').drop_duplicates(subset='item_id').sort_values(by='YourMatch', ascending=False).reset_index(drop=True)
-    st.write(df_merged)
+
     return df_merged
 
 def display_anime(df):

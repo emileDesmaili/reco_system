@@ -113,7 +113,7 @@ if page == 'About':
     st.markdown(f'- Genre-based Recommender Systems built using a co-occurence matrix of genres & averaged on all items', unsafe_allow_html=True)
     st.markdown(f'- I used this **[dataset](https://www.kaggle.com/datasets/marlesson/myanimelist-dataset-animes-profiles-reviews) from Kaggle** which I would like to update ', unsafe_allow_html=True)
     st.write('- When the user adds animes, instead of asking them to score each one, **I assign all of them with a rating of 8.0/10**. This is a big assumption and stands to be improved')
-    
+    st.write('- To have decent computation time, I run the SVD on **filtered data**: I keep anime with only **500+ reviews**. ')
     st.subheader('Algorithms')
     st.write('I used SVD as a baseline, it performed better than NMF and on par with KNN which is slower')
     model_names = ['SVD','NMF','SVD++','K-NN']

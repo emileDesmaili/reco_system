@@ -88,7 +88,7 @@ def get_recos_users(new_ids, reviews, filter_items=True, filter_n=500, default_r
     # Retrieve the trainset.
     trainset = data.build_full_trainset()
     # Build an algorithm, and train it.
-    algo = SVD()
+    algo = SVD(random_state=42)
     algo.fit(trainset)
 
     # Then predict ratings for all pairs (u, i) that are NOT in the training set.

@@ -5,3 +5,4 @@ numpy
 surprise
 plotly
 sklearn
+statsmodels

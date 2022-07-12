@@ -24,10 +24,10 @@ def filter_reviews(reviews, min_item_ratings=500, min_user_ratings= 1):
     Returns:
         dataframe: filtered dataframe
     """
-    filter_items = reviews['item_id'].value_counts() > min_item_ratings
+    filter_items = reviews['item_id'].value_counts() >= min_item_ratings
     filter_items = filter_items[filter_items].index.tolist()
 
-    filter_users = reviews['user_id'].value_counts() > min_user_ratings
+    filter_users = reviews['user_id'].value_counts() >= min_user_ratings
     filter_users = filter_users[filter_users].index.tolist()
     df = reviews[(reviews['item_id'].isin(filter_items)) & (reviews['user_id'].isin(filter_users))]
     return df
